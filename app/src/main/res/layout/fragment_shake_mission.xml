@@ -1,14 +1,69 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/rootShakeMission"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:padding="24dp"
+    android:background="#FFF8E1"
     tools:context=".fragment.ShakeMissionFragment">
 
-    <!-- TODO: Update blank fragment layout -->
-    <TextView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:text="@string/hello_blank_fragment" />
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="16dp">
 
+        <TextView
+            android:id="@+id/tvShakeTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Shake your phone to turn off the alarm"
+            android:textSize="24sp"
+            android:textColor="#FF5722"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:paddingBottom="16dp" />
+
+        <ImageView
+            android:id="@+id/ivShakeIcon"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:src="@drawable/shake_phone"
+            android:contentDescription="Shake icon"
+            android:paddingBottom="24dp" />
+
+        <TextView
+            android:id="@+id/tvShakeCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0 / 15"
+            android:textSize="22sp"
+            android:textColor="#3F51B5"
+            android:textStyle="bold"
+            android:paddingBottom="16dp" />
+
+        <ProgressBar
+            android:id="@+id/pbShakeProgress"
+            style="@android:style/Widget.DeviceDefault.Light.ProgressBar.Horizontal"
+            android:layout_width="250dp"
+            android:layout_height="24dp"
+            android:progress="0"
+            android:max="15"
+            android:progressTint="#FF9800"
+            android:backgroundTint="#C5CAE9"
+            android:layout_marginBottom="24dp"
+            android:indeterminate="false" />
+
+        <TextView
+            android:id="@+id/tvShakeHint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Shake it hard and continuously!"
+            android:textSize="18sp"
+            android:textColor="#757575"
+            android:gravity="center" />
+
+    </LinearLayout>
 </FrameLayout>
