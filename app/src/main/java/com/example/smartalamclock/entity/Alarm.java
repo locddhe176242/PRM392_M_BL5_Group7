@@ -1,9 +1,12 @@
 package com.example.smartalamclock.entity;
 
+import static java.lang.System.currentTimeMillis;
+
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
 import java.io.Serializable;
+import java.util.Calendar;
 
 @Entity(tableName = "alarms")
 public class Alarm implements Serializable {
@@ -15,7 +18,10 @@ public class Alarm implements Serializable {
     private String repeatDays;
     private String ringtone;
     private boolean vibrate;
-    public Alarm() {}
+
+    public Alarm() {
+    }
+
     public Alarm(int id, String time, boolean enabled, String label, String repeatDays, String ringtone, boolean vibrate) {
         this.id = id;
         this.time = time;
@@ -80,6 +86,23 @@ public class Alarm implements Serializable {
 
     public void setVibrate(boolean vibrate) {
         this.vibrate = vibrate;
+    }
+
+    public long getTimeInMillis() {
+        String[] parts = time.split(":");
+        int hour = Integer.parseInt(parts[0]);
+        int minute = Integer.parseInt(parts[1]);
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.HOUR_OF_DAY, hour);
+        calendar.set(Calendar.MINUTE, minute);
+        calendar.set(Calendar.SECOND, 0);
+
+        // Nếu thời gian đã qua, đặt cho ngày mai
+        if (calendar.getTimeInMillis() <= currentTimeMillis()) {
+            calendar.add(Calendar.DAY_OF_YEAR, 1);
+        }
+
+        return calendar.getTimeInMillis();
     }
 }
 

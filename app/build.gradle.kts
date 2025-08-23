@@ -37,7 +37,7 @@ dependencies {
     implementation(libs.material)
     implementation(libs.activity)
     implementation(libs.constraintlayout)
-    implementation ("androidx.room:room-runtime:2.5.0")
+    implementation ("androidx.room:room-runtime:2.7.1")
     annotationProcessor("androidx.room:room-compiler:2.7.1")
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
