@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="shake_threshold">12dp</dimen>
+
+    <dimen name="tic_tac_toe_cell_size">100dp</dimen>
+
+    <dimen name="tic_tac_toe_text_size">24sp</dimen>
+</resources>

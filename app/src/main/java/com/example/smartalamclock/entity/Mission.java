@@ -2,56 +2,33 @@ package com.example.smartalamclock.entity;
 
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
-
-import java.io.Serializable;
+import com.example.smartalamclock.mission.MissionType;
 
 @Entity(tableName = "mission")
-public class Mission implements Serializable {
+public class Mission {
     @PrimaryKey(autoGenerate = true)
-    private int id;
-    private String type;
-    private String description;
-    private int difficulty;
+    private long missionId;
 
-    public Mission() {
-    }
+    private MissionType type;
+    private String data;
 
-    public Mission(int id, String type, String description, int difficulty) {
-        this.id = id;
+    private boolean completed;
+
+    public Mission(MissionType type, String data) {
         this.type = type;
-        this.description = description;
-        this.difficulty = difficulty;
+        this.data = data;
+        this.completed = false;
     }
 
-    public int getId() {
-        return id;
-    }
+    public long getMissionId() { return missionId; }
+    public void setMissionId(long missionId) { this.missionId = missionId; }
 
-    public void setId(int id) {
-        this.id = id;
-    }
+    public MissionType getType() { return type; }
+    public void setType(MissionType type) { this.type = type; }
 
-    public String getType() {
-        return type;
-    }
+    public String getData() { return data; }
+    public void setData(String data) { this.data = data; }
 
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public int getDifficulty() {
-        return difficulty;
-    }
-
-    public void setDifficulty(int difficulty) {
-        this.difficulty = difficulty;
-    }
+    public boolean isCompleted() { return completed; }
+    public void setCompleted(boolean completed) { this.completed = completed; }
 }

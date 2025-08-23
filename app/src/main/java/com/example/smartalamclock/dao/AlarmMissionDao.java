@@ -19,12 +19,15 @@ public interface AlarmMissionDao {
     @Delete
     void delete(AlarmMission alarmMission);
 
-    @Query("SELECT * FROM alarmmission")
+    @Query("SELECT * FROM alarm_mission")
     List<AlarmMission> getAll();
 
-    @Query("SELECT * FROM alarmmission WHERE alarmId = :alarmId")
+    @Query("SELECT * FROM alarm_mission WHERE alarmId = :alarmId")
     List<AlarmMission> getByAlarmId(int alarmId);
 
-    @Query("SELECT * FROM alarmmission WHERE missionId = :missionId")
+    @Query("SELECT * FROM alarm_mission WHERE missionId = :missionId")
     List<AlarmMission> getByMissionId(int missionId);
+
+    @Query("SELECT missionId FROM alarm_mission WHERE alarmId = :alarmId")
+    List<Long> getMissionIdsForAlarm(int alarmId);
 }

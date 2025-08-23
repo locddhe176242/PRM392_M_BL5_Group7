@@ -1,4 +1,7 @@
 package com.example.smartalamclock.mission;
 
-public class MissionHost {
+public interface MissionHost {
+    void onMissionProgress(int progress);
+    void onMissionCompleted();
+    void onMissionFailed(String reason);
 }

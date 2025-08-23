@@ -8,7 +8,9 @@ import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
 import android.os.Build;
+
 import androidx.core.app.NotificationCompat;
+
 import com.example.smartalamclock.R;
 import com.example.smartalamclock.activity.RingingActivity;
 
@@ -27,11 +29,10 @@ public class NotificationHelper extends ContextWrapper {
     @TargetApi(Build.VERSION_CODES.O)
     private void createChannel() {
         NotificationChannel channel = new NotificationChannel(
-            channelID, 
-            channelName, 
-            NotificationManager.IMPORTANCE_HIGH
+                channelID,
+                channelName,
+                NotificationManager.IMPORTANCE_HIGH
         );
-        // Cấu hình cần thiết cho channel báo thức
         channel.setDescription("Kênh thông báo báo thức");
         channel.enableLights(true);
         channel.enableVibration(true);
@@ -46,31 +47,23 @@ public class NotificationHelper extends ContextWrapper {
         return mManager;
     }
 
-    public NotificationCompat.Builder getChannelNotification() {
-        // Tạo Intent với action cụ thể
+    public NotificationCompat.Builder getChannelNotification(long alarmId) {
         Intent intent = new Intent(this, RingingActivity.class);
-        intent.setAction("OPEN_RINGING_ACTIVITY");
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.putExtra("ALARM_ID", alarmId);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
 
-        // Tạo PendingIntent với requestCode cố định
         PendingIntent pendingIntent = PendingIntent.getActivity(
-            this,
-            0,  // Fixed request code
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+                this,
+                (int) alarmId,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
-        return new NotificationCompat.Builder(getApplicationContext(), channelID)
-                .setContentTitle("Báo thức!")
-                .setContentText("Đã đến giờ báo thức")
-                .setSmallIcon(R.drawable.gold)
-                .setAutoCancel(true)
-                .setDefaults(NotificationCompat.DEFAULT_ALL)
-                .setPriority(NotificationCompat.PRIORITY_MAX)
-                .setCategory(NotificationCompat.CATEGORY_ALARM)
-                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+        return new NotificationCompat.Builder(this, channelID)
+                .setContentTitle("Báo thức")
+                .setContentText("Đã đến giờ! Nhấn để bắt đầu nhiệm vụ.")
                 .setContentIntent(pendingIntent)
-                .setFullScreenIntent(pendingIntent, true);
+                .setAutoCancel(true)
+                .setPriority(NotificationCompat.PRIORITY_HIGH);
     }
 }
-

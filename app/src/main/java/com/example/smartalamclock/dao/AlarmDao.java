@@ -24,4 +24,13 @@ public interface AlarmDao {
 
     @Query("SELECT * FROM alarms WHERE id = :id LIMIT 1")
     Alarm getById(int id);
+
+    @Query("SELECT * FROM alarms WHERE id = :id LIMIT 1")
+    Alarm getAlarmById(int id);
+
+    @Query("SELECT * FROM alarms WHERE enabled = 1 AND active = 1")
+    List<Alarm> getActiveAlarms();
+
+    @Query("UPDATE alarms SET active = 0 WHERE id = :id")
+    void dismissAlarm(int id);
 }

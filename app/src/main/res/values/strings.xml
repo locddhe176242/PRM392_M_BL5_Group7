@@ -1,5 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">SmartAlamClock</string>
-    <!-- TODO: Remove or change this placeholder text -->
+    <!-- App -->
+    <string name="app_name">SmartAlarmClock</string>
+
+    <!-- Placeholder -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+
+    <!-- General -->
+    <string name="mission_completed">Mission Completed!</string>
+
+    <!-- TicTacToeMissionFragment -->
+    <string name="tic_tac_toe_title">Play Tic Tac Toe to turn off the alarm</string>
+    <string name="your_turn">Your turn!</string>
+    <string name="computer_turn">Computer turn</string>
+    <string name="draw">Draw!</string>
+    <string name="you_win">You Win! Alarm Off!</string>
+    <string name="computer_wins">Computer Wins! Try Again!</string>
+    <string name="restart">Restart</string>
+
+    <!-- ShakeMissionFragment -->
+    <string name="shake_to_dismiss">Shake your device to dismiss the alarm</string>
 </resources>

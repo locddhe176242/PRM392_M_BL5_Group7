@@ -1,4 +1,3 @@
 package com.example.smartalamclock.mission;
 
-public class MissionType {
-}
+public enum MissionType {MATH, SHAKE, TIC_TAC_TOE}
