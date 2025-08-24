@@ -16,12 +16,19 @@ import androidx.core.app.NotificationCompat;
 import com.example.smartalamclock.R;
 import com.example.smartalamclock.activity.RingingActivity;
 
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
 public class AlarmSoundService extends Service {
     private static final String TAG = "AlarmSoundService";
     private static final String CHANNEL_ID = "alarm_channel";
     private static final int NOTIFICATION_ID = 1001;
 
     private MediaPlayer mediaPlayer;
+    private final Random random = new Random();
+    private List<Integer> trackRes = null;
 
     @Override
     public void onCreate() {
@@ -64,23 +71,14 @@ public class AlarmSoundService extends Service {
             Log.e(TAG, "startForeground failed", e);
         }
 
-        try {
-            if (mediaPlayer == null) {
-                mediaPlayer = MediaPlayer.create(this, R.raw.victory);
-                if (mediaPlayer == null) {
-                    Log.e(TAG, "MediaPlayer.create returned null — check res/raw/victory");
-                } else {
-                    mediaPlayer.setLooping(true);
-                    mediaPlayer.setVolume(1.0f, 1.0f);
-                }
-            }
-            if (mediaPlayer != null && !mediaPlayer.isPlaying()) {
-                mediaPlayer.start();
-                Log.d(TAG, "MediaPlayer started");
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Error starting MediaPlayer", e);
+        // --- Random track playback logic ---
+        // Lazily build list of raw resource IDs (reflection) if you don't want to hardcode filenames.
+        if (trackRes == null) {
+            trackRes = loadAllRawTracks();
         }
+
+        // Start playing random sequence (will keep selecting next when current completes)
+        playRandomTrack();
 
         return START_STICKY;
     }
@@ -106,14 +104,82 @@ public class AlarmSoundService extends Service {
         }
     }
 
+    private List<Integer> loadAllRawTracks() {
+        List<Integer> list = new ArrayList<>();
+        try {
+            // reflect R.raw to get all raw resource ids
+            Class<?> rawClass = com.example.smartalamclock.R.raw.class;
+            Field[] fields = rawClass.getFields();
+            for (Field f : fields) {
+                try {
+                    int resId = f.getInt(null);
+                    list.add(resId);
+                } catch (Exception ignore) { }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to load raw resources via reflection", e);
+        }
+
+        // Optionally: if you prefer to use an explicit list, replace above with:
+        // list = Arrays.asList(R.raw.track1, R.raw.track2, R.raw.track3);
+
+        if (list.isEmpty()) {
+            Log.w(TAG, "No tracks found in res/raw. Add audio files or hardcode list.");
+        } else {
+            Log.d(TAG, "Loaded " + list.size() + " tracks for random playback");
+        }
+        return list;
+    }
+
+    private void playRandomTrack() {
+        if (trackRes == null || trackRes.isEmpty()) return;
+
+        int idx = random.nextInt(trackRes.size());
+        int resId = trackRes.get(idx);
+
+        try {
+            // release old player if exists
+            if (mediaPlayer != null) {
+                try { mediaPlayer.reset(); } catch (Exception ignored) {}
+                try { mediaPlayer.release(); } catch (Exception ignored) {}
+                mediaPlayer = null;
+            }
+
+            mediaPlayer = MediaPlayer.create(this, resId);
+            if (mediaPlayer == null) {
+                Log.e(TAG, "MediaPlayer.create returned null for resId=" + resId);
+                return;
+            }
+
+            mediaPlayer.setLooping(false); // false so we can pick a new random track on completion
+            mediaPlayer.setOnCompletionListener(mp -> {
+                // choose next random track when current finishes
+                playRandomTrack();
+            });
+            mediaPlayer.start();
+            Log.d(TAG, "Playing random track resId=" + resId);
+        } catch (Exception e) {
+            Log.e(TAG, "Error playing random track", e);
+        }
+    }
+
+    private void stopAndReleasePlayer() {
+        try {
+            if (mediaPlayer != null) {
+                if (mediaPlayer.isPlaying()) mediaPlayer.stop();
+                mediaPlayer.reset();
+                mediaPlayer.release();
+                mediaPlayer = null;
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error stopping/releasing mediaPlayer", e);
+        }
+    }
+
     @Override
     public void onDestroy() {
         Log.d(TAG, "onDestroy");
-        if (mediaPlayer != null) {
-            try { if (mediaPlayer.isPlaying()) mediaPlayer.stop(); } catch (Exception ignored) {}
-            try { mediaPlayer.release(); } catch (Exception ignored) {}
-            mediaPlayer = null;
-        }
+        stopAndReleasePlayer();
         try { stopForeground(true); } catch (Exception ignored) {}
         super.onDestroy();
     }
