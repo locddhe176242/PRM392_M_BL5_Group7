@@ -9,76 +9,117 @@ import android.content.Intent;
 import android.media.MediaPlayer;
 import android.os.Build;
 import android.os.IBinder;
+import android.util.Log;
+
 import androidx.core.app.NotificationCompat;
 
 import com.example.smartalamclock.R;
 import com.example.smartalamclock.activity.RingingActivity;
 
 public class AlarmSoundService extends Service {
-    private static final String CHANNEL_ID = "AlarmChannel";
-    private static final int NOTIFICATION_ID = 1;
+    private static final String TAG = "AlarmSoundService";
+    private static final String CHANNEL_ID = "alarm_channel";
+    private static final int NOTIFICATION_ID = 1001;
+
     private MediaPlayer mediaPlayer;
 
     @Override
     public void onCreate() {
         super.onCreate();
         createNotificationChannel();
+        Log.d(TAG, "onCreate");
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        // Play alarm sound
-        mediaPlayer = MediaPlayer.create(this, R.raw.victory);
-        if (mediaPlayer != null) {
-            mediaPlayer.setLooping(true);
-            mediaPlayer.start();
+        Log.d(TAG, "onStartCommand intent=" + intent);
+        int alarmId = -1;
+        if (intent != null) alarmId = intent.getIntExtra("ALARM_ID", -1);
+        Intent contentIntent = new Intent(this, RingingActivity.class);
+        contentIntent.putExtra("ALARM_ID", alarmId);
+        contentIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        PendingIntent contentPendingIntent = PendingIntent.getActivity(
+                this,
+                alarmId == -1 ? 0 : alarmId,
+                contentIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        NotificationCompat.Builder nb = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle(getString(R.string.app_name))
+                .setContentText("Báo thức đang kêu")
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setOnlyAlertOnce(true)
+                .setOngoing(true)
+                .setContentIntent(contentPendingIntent);
+
+        Notification notification = nb.build();
+
+        try {
+            startForeground(NOTIFICATION_ID, notification);
+            Log.d(TAG, "startForeground done");
+        } catch (Exception e) {
+            Log.e(TAG, "startForeground failed", e);
         }
 
-        // Retrieve alarmId from the intent that started the service
-        long alarmId = intent.getLongExtra("ALARM_ID", -1);
-        Intent notificationIntent = new Intent(this, RingingActivity.class);
-        notificationIntent.putExtra("ALARM_ID", alarmId); // Pass the alarmId
-        notificationIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP); // Ensure new task
-
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-
-        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("Alarm Ringing")
-                .setContentText("Complete the mission to stop the alarm")
-                .setSmallIcon(R.drawable.ic_launcher_foreground) // Replace with your icon
-                .setContentIntent(pendingIntent)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .build();
-
-        startForeground(NOTIFICATION_ID, notification);
+        try {
+            if (mediaPlayer == null) {
+                mediaPlayer = MediaPlayer.create(this, R.raw.victory);
+                if (mediaPlayer == null) {
+                    Log.e(TAG, "MediaPlayer.create returned null — check res/raw/victory");
+                } else {
+                    mediaPlayer.setLooping(true);
+                    mediaPlayer.setVolume(1.0f, 1.0f);
+                }
+            }
+            if (mediaPlayer != null && !mediaPlayer.isPlaying()) {
+                mediaPlayer.start();
+                Log.d(TAG, "MediaPlayer started");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error starting MediaPlayer", e);
+        }
 
         return START_STICKY;
     }
 
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationManager nm = getSystemService(NotificationManager.class);
+            if (nm == null) {
+                Log.w(TAG, "NotificationManager is null");
+                return;
+            }
+            NotificationChannel channel = new NotificationChannel(
+                    CHANNEL_ID,
+                    "Alarm channel",
+                    NotificationManager.IMPORTANCE_HIGH
+            );
+            channel.setDescription("Channel for alarm foreground service");
+            channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+            channel.setSound(null, null);
+            channel.setBypassDnd(true);
+            nm.createNotificationChannel(channel);
+            Log.d(TAG, "Notification channel created");
+        }
+    }
+
     @Override
     public void onDestroy() {
-        super.onDestroy();
+        Log.d(TAG, "onDestroy");
         if (mediaPlayer != null) {
-            mediaPlayer.stop();
-            mediaPlayer.release();
+            try { if (mediaPlayer.isPlaying()) mediaPlayer.stop(); } catch (Exception ignored) {}
+            try { mediaPlayer.release(); } catch (Exception ignored) {}
             mediaPlayer = null;
         }
+        try { stopForeground(true); } catch (Exception ignored) {}
+        super.onDestroy();
     }
 
     @Override
     public IBinder onBind(Intent intent) {
         return null;
-    }
-
-    private void createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(
-                    CHANNEL_ID,
-                    "Alarm Service Channel",
-                    NotificationManager.IMPORTANCE_HIGH);
-            NotificationManager manager = getSystemService(NotificationManager.class);
-            manager.createNotificationChannel(channel);
-        }
     }
 }

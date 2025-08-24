@@ -21,14 +21,13 @@ public class CreateAlarmActivity extends AppCompatActivity {
     private EditText etLabel;
     private Button btnSave, btnCancel, btnDelete;
     private AppDatabase db;
-    private Alarm existingAlarm; // Để lưu báo thức đang sửa
+    private Alarm existingAlarm;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_create_alarm);
 
-        // Ánh xạ views
         timePicker = findViewById(R.id.timePicker);
         etLabel = findViewById(R.id.etLabel);
         btnSave = findViewById(R.id.btnSave);
@@ -41,10 +40,9 @@ public class CreateAlarmActivity extends AppCompatActivity {
                 "alarm-db"
         ).build();
 
-        // Kiểm tra có phải đang sửa báo thức không
         Intent intent = getIntent();
-        if (intent.hasExtra("alarm_id")) {
-            int alarmId = intent.getIntExtra("alarm_id", -1);
+        if (intent.hasExtra("ALARM_ID")) {
+            int alarmId = intent.getIntExtra("ALARM_ID", -1);
             loadExistingAlarm(alarmId);
         } else {
             btnDelete.setVisibility(View.GONE);
@@ -60,7 +58,6 @@ public class CreateAlarmActivity extends AppCompatActivity {
             existingAlarm = db.alarmDao().getById(alarmId);
             if (existingAlarm != null) {
                 runOnUiThread(() -> {
-                    // Hiển thị dữ liệu cũ
                     String[] timeParts = existingAlarm.getTime().split(":");
                     timePicker.setHour(Integer.parseInt(timeParts[0]));
                     timePicker.setMinute(Integer.parseInt(timeParts[1]));
@@ -82,21 +79,18 @@ public class CreateAlarmActivity extends AppCompatActivity {
         calendar.set(Calendar.SECOND, 0);
         calendar.set(Calendar.MILLISECOND, 0);
 
-        // Nếu thời gian đã qua, đặt cho ngày mai
         if (calendar.getTimeInMillis() <= System.currentTimeMillis()) {
             calendar.add(Calendar.DAY_OF_MONTH, 1);
         }
 
         Executors.newSingleThreadExecutor().execute(() -> {
             if (existingAlarm != null) {
-                // Cập nhật báo thức cũ
-                AlarmSchedulder.cancelAlarm(this, existingAlarm.getId()); // Hủy báo thức cũ
+                AlarmSchedulder.cancelAlarm(this, existingAlarm.getId()); 
                 existingAlarm.setTime(String.format("%02d:%02d", hour, minute));
                 existingAlarm.setLabel(label);
                 db.alarmDao().update(existingAlarm);
                 AlarmSchedulder.scheduleAlarm(this, calendar.getTimeInMillis(), existingAlarm.getId());
             } else {
-                // Tạo báo thức mới
                 Alarm alarm = new Alarm();
                 alarm.setTime(String.format("%02d:%02d", hour, minute));
                 alarm.setLabel(label);

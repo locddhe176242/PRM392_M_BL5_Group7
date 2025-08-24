@@ -18,7 +18,7 @@ import com.example.smartalamclock.mission.MissionType;
 
 @Database(
         entities = {Alarm.class, Mission.class, AlarmMission.class},
-        version = 1,
+        version = 3, // Tăng version lên 3
         exportSchema = false)
 @TypeConverters(AppDatabase.MissionTypeConverter.class)
 public abstract class AppDatabase extends RoomDatabase {
@@ -35,7 +35,8 @@ public abstract class AppDatabase extends RoomDatabase {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                                     AppDatabase.class, "smartalarm_db")
-                            .fallbackToDestructiveMigration()
+                            .fallbackToDestructiveMigration() // Cho phép xóa và tạo lại DB
+                            .allowMainThreadQueries() // Tạm thời cho phép query trên main thread
                             .build();
                 }
             }

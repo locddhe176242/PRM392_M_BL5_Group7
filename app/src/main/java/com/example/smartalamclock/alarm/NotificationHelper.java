@@ -37,6 +37,8 @@ public class NotificationHelper extends ContextWrapper {
         channel.enableLights(true);
         channel.enableVibration(true);
         channel.setLockscreenVisibility(NotificationCompat.VISIBILITY_PUBLIC);
+        channel.setBypassDnd(true);                 
+        channel.setSound(null, null);              
         getManager().createNotificationChannel(channel);
     }
 
@@ -49,7 +51,7 @@ public class NotificationHelper extends ContextWrapper {
 
     public NotificationCompat.Builder getChannelNotification(long alarmId) {
         Intent intent = new Intent(this, RingingActivity.class);
-        intent.putExtra("ALARM_ID", alarmId);
+        intent.putExtra("ALARM_ID", (int) alarmId); 
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
 
         PendingIntent pendingIntent = PendingIntent.getActivity(
@@ -64,6 +66,8 @@ public class NotificationHelper extends ContextWrapper {
                 .setContentText("Đã đến giờ! Nhấn để bắt đầu nhiệm vụ.")
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true)
+                .setOnlyAlertOnce(true)  
+                .setOngoing(true)
                 .setPriority(NotificationCompat.PRIORITY_HIGH);
     }
 }
