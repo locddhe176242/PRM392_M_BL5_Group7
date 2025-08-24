@@ -4,33 +4,35 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
-
-import androidx.core.app.NotificationCompat;
-
-import com.example.smartalamclock.activity.RingingActivity;
+import android.util.Log;
 
 public class AlarmReceiver extends BroadcastReceiver {
+    private static final String TAG = "AlarmReceiver";
+
     @Override
     public void onReceive(Context context, Intent intent) {
-        long alarmId = intent.getLongExtra("ALARM_ID", -1);
-        if (alarmId == -1) return;
+        Log.d(TAG, "onReceive intent=" + intent);
+        if (intent == null) return;
 
-        Intent activityIntent = new Intent(context, RingingActivity.class);
-        activityIntent.putExtra("ALARM_ID", alarmId);
-        activityIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        context.startActivity(activityIntent);
-
-        NotificationHelper notificationHelper = new NotificationHelper(context);
-        NotificationCompat.Builder nb = notificationHelper.getChannelNotification(alarmId);
-        notificationHelper.getManager().notify((int) alarmId, nb.build());
-
-        Intent serviceIntent = new Intent(context, AlarmSoundService.class);
-        serviceIntent.putExtra("ALARM_ID", alarmId);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(serviceIntent);
-        } else {
-            context.startService(serviceIntent);
+        int alarmId = intent.getIntExtra("ALARM_ID", -1);
+        Log.d(TAG, "onReceive alarmId=" + alarmId);
+        if (alarmId == -1) {
+            Log.w(TAG, "onReceive: invalid alarmId");
+            return;
         }
-    }
 
+        try {
+            Intent serviceIntent = new Intent(context, AlarmSoundService.class);
+            serviceIntent.putExtra("ALARM_ID", alarmId);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(serviceIntent);
+            } else {
+                context.startService(serviceIntent);
+            }
+            Log.d(TAG, "Requested AlarmSoundService start for alarmId=" + alarmId);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to start AlarmSoundService", e);
+        }
+
+    }
 }

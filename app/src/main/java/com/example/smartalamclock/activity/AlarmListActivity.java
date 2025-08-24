@@ -16,12 +16,14 @@ import com.example.smartalamclock.alarm.AlarmSchedulder;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.util.List;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
 import java.util.ArrayList;
 
 public class AlarmListActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private AlarmAdapter adapter;
     private AppDatabase db;
+    private final ExecutorService executor = Executors.newSingleThreadExecutor(); 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,23 +48,22 @@ public class AlarmListActivity extends AppCompatActivity {
             @Override
             public void onAlarmClick(Alarm alarm) {
                 Intent intent = new Intent(AlarmListActivity.this, CreateAlarmActivity.class);
-                intent.putExtra("alarm_id", alarm.getId());
+                intent.putExtra("ALARM_ID", alarm.getId()); 
                 startActivity(intent);
             }
 
             @Override
             public void onSwitchChanged(Alarm alarm, boolean enabled) {
                 alarm.setEnabled(enabled);
-                Executors.newSingleThreadExecutor().execute(() -> {
+                executor.execute(() -> { 
                     db.alarmDao().update(alarm);
                     if (enabled) {
                         runOnUiThread(() -> AlarmSchedulder.scheduleAlarm(
                             AlarmListActivity.this,
                             alarm.getTimeInMillis(),
-                            alarm.getId() // Thêm alarm ID
+                            alarm.getId()
                         ));
                     } else {
-                        // Hủy báo thức khi tắt switch
                         runOnUiThread(() -> AlarmSchedulder.cancelAlarm(
                             AlarmListActivity.this,
                             alarm.getId()
@@ -77,7 +78,7 @@ public class AlarmListActivity extends AppCompatActivity {
                     .setTitle("Xoá báo thức")
                     .setMessage("Bạn có chắc muốn xoá báo thức này?")
                     .setPositiveButton("Xoá", (dialog, which) -> {
-                        Executors.newSingleThreadExecutor().execute(() -> {
+                        executor.execute(() -> { 
                             db.alarmDao().delete(alarm);
                             runOnUiThread(() -> reloadAlarms());
                         });
@@ -96,7 +97,7 @@ public class AlarmListActivity extends AppCompatActivity {
         });
     }
     private void reloadAlarms() {
-        Executors.newSingleThreadExecutor().execute(() -> {
+        executor.execute(() -> { 
             List<Alarm> alarms = db.alarmDao().getAll();
             runOnUiThread(() -> adapter.setAlarms(alarms));
         });
@@ -106,5 +107,11 @@ public class AlarmListActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         reloadAlarms();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        executor.shutdown();
     }
 }

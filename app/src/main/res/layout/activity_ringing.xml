@@ -31,7 +31,7 @@
         app:layout_constraintTop_toBottomOf="@id/tvTime"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/btnDismiss" />
+        app:layout_constraintBottom_toTopOf="@id/btnStop" />
 
     <FrameLayout
         android:id="@+id/mission_container"
@@ -43,7 +43,7 @@
         app:layout_constraintRight_toRightOf="parent" />
 
     <Button
-        android:id="@+id/btnDismiss"
+        android:id="@+id/btnStop"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Tắt báo thức"
