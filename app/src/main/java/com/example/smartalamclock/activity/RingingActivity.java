@@ -22,6 +22,10 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.Random;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.Context;
+
 public class RingingActivity extends AppCompatActivity implements MissionHost {
     private static final String TAG = "RingingActivity";
 
@@ -59,7 +63,6 @@ public class RingingActivity extends AppCompatActivity implements MissionHost {
         if (btnStop == null) {
             Log.e(TAG, "btnStop is null — check activity_ringing.xml for @+id/btnStop");
         } else {
-            // Ban đầu ẩn đi, chỉ hiện khi mission hoàn thành
             btnStop.setVisibility(Button.GONE);
             btnStop.setOnClickListener(v -> stopAlarm());
         }
@@ -69,7 +72,7 @@ public class RingingActivity extends AppCompatActivity implements MissionHost {
         Log.d(TAG, "onCreate alarmId=" + alarmId);
 
         startAlarmSound();
-        loadRandomMission(); // random đúng 1 mission khi mở activity
+        loadRandomMission(); 
     }
 
     @Override
@@ -99,7 +102,6 @@ public class RingingActivity extends AppCompatActivity implements MissionHost {
         Log.d(TAG, "Requested AlarmSoundService start");
     }
 
-    /** Random và load fragment nhiệm vụ duy nhất */
     private void loadRandomMission() {
         try {
             Fragment fragment = null;
@@ -145,31 +147,75 @@ public class RingingActivity extends AppCompatActivity implements MissionHost {
     public void onMissionCompleted() {
         runOnUiThread(() -> {
             btnStop.setVisibility(Button.VISIBLE);
-            Toast.makeText(this, "Mission Completed! Click to stop.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Nhiệm vụ hoàn thành! Nhấn để tắt báo thức.", Toast.LENGTH_SHORT).show();
         });
     }
 
     @Override
     public void onMissionFailed(String reason) {
         runOnUiThread(() -> {
-            Toast.makeText(this, "Mission Failed: " + reason, Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Nhiệm vụ thất bại: " + reason, Toast.LENGTH_SHORT).show();
         });
+    }
+
+    private void scheduleSnooze(int originalAlarmId) {
+        try {
+            long triggerAtMillis = System.currentTimeMillis() + 5 * 60 * 1000L;
+            Intent snoozeIntent = new Intent(this, com.example.smartalamclock.alarm.AlarmReceiver.class);
+            snoozeIntent.putExtra("ALARM_ID", originalAlarmId);
+            snoozeIntent.putExtra("IS_SNOOZE", true);
+
+            int requestCode;
+            if (originalAlarmId >= 0) {
+                requestCode = originalAlarmId + 100000;
+            } else {
+                requestCode = (int) (System.currentTimeMillis() & 0x7fffffff);
+            }
+
+            PendingIntent pending = PendingIntent.getBroadcast(
+                    this,
+                    requestCode,
+                    snoozeIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+
+            AlarmManager am = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+            if (am != null) {
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        if (am.canScheduleExactAlarms()) {
+                            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pending);
+                        } else {
+                            Log.w(TAG, "App cannot schedule exact alarms (canScheduleExactAlarms=false). Using inexact fallback.");
+                            am.set(AlarmManager.RTC_WAKEUP, triggerAtMillis, pending);
+                        }
+                    } else {
+                        am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pending);
+                    }
+                    Log.d(TAG, "Snooze scheduled in 5 minutes for alarmId=" + originalAlarmId);
+                } catch (SecurityException se) {
+                    Log.w(TAG, "SecurityException scheduling exact alarm — falling back to inexact alarm", se);
+                    am.set(AlarmManager.RTC_WAKEUP, triggerAtMillis, pending);
+                }
+            } else {
+                Log.w(TAG, "AlarmManager is null, cannot schedule snooze");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "scheduleSnooze error", e);
+        }
     }
 
     private void stopAlarm() {
         try {
-            // Dừng nhạc chuông
-            stopService(new Intent(this, AlarmSoundService.class));
+            Intent serviceIntent = new Intent(this, com.example.smartalamclock.alarm.AlarmSoundService.class);
+            stopService(serviceIntent);
 
-            getSupportFragmentManager()
-                    .beginTransaction()
-                    .remove(getSupportFragmentManager().findFragmentById(R.id.mission_container))
-                    .commitAllowingStateLoss();
+            scheduleSnooze(alarmId);
 
-            Toast.makeText(this, "Alarm stopped", Toast.LENGTH_SHORT).show();
+
             finish();
         } catch (Exception e) {
-            Log.e(TAG, "Error stopping alarm", e);
+            Log.e(TAG, "Lỗi tắt báo thức", e);
         }
     }
 
