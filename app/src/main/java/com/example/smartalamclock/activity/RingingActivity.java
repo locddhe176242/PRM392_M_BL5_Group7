@@ -11,27 +11,24 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
 
 import com.example.smartalamclock.R;
 import com.example.smartalamclock.alarm.AlarmSoundService;
-import com.example.smartalamclock.entity.Mission;
-import com.example.smartalamclock.mission.MissionCompletionListener;
-import com.example.smartalamclock.repository.AlarmRepository;
+import com.example.smartalamclock.mission.MissionHost;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.List;
 import java.util.Locale;
 import java.util.Random;
 
-public class RingingActivity extends AppCompatActivity implements MissionCompletionListener {
+public class RingingActivity extends AppCompatActivity implements MissionHost {
     private static final String TAG = "RingingActivity";
 
     private TextView tvTime;
     private Button btnStop;
     private final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
     private int alarmId = -1;
-    private AlarmRepository alarmRepository;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,9 +37,9 @@ public class RingingActivity extends AppCompatActivity implements MissionComplet
 
         getWindow().addFlags(
                 WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON |
-                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED |
-                WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON |
-                WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
+                        WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED |
+                        WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON |
+                        WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
         );
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
@@ -58,38 +55,21 @@ public class RingingActivity extends AppCompatActivity implements MissionComplet
 
         tvTime = findViewById(R.id.tvTime);
         btnStop = findViewById(R.id.btnStop);
-        alarmRepository = new AlarmRepository(getApplication());
 
         if (btnStop == null) {
-            Log.e(TAG, "btnStop is null — check activity_ringing.xml for @+id/btnStop and that this layout is used.");
+            Log.e(TAG, "btnStop is null — check activity_ringing.xml for @+id/btnStop");
         } else {
-            btnStop.setOnClickListener(v -> {
-                try {
-                    Intent serviceIntent = new Intent(this, AlarmSoundService.class);
-                    stopService(serviceIntent);
-                    Toast.makeText(this, "Báo thức đã dừng.", Toast.LENGTH_SHORT).show();
-                    alarmRepository.dismissAlarm(alarmId);
-                    finish();
-                } catch (Exception e) {
-                    Log.e(TAG, "Error stopping alarm on btnStop", e);
-                }
-            });
-
-            btnStop.setOnLongClickListener(v -> {
-                Toast.makeText(this, "Long press: mở nhiệm vụ (chưa cài).", Toast.LENGTH_SHORT).show();
-                return true;
-            });
+            // Ban đầu ẩn đi, chỉ hiện khi mission hoàn thành
+            btnStop.setVisibility(Button.GONE);
+            btnStop.setOnClickListener(v -> stopAlarm());
         }
 
         alarmId = getIntent() != null ? getIntent().getIntExtra("ALARM_ID", -1) : -1;
         updateTimeDisplay();
         Log.d(TAG, "onCreate alarmId=" + alarmId);
-        if (alarmId == -1) {
-            Log.w(TAG, "No alarmId received; continuing without finishing (music controlled by service)");
-        }
 
         startAlarmSound();
-        loadMissions();
+        loadRandomMission(); // random đúng 1 mission khi mở activity
     }
 
     @Override
@@ -119,71 +99,83 @@ public class RingingActivity extends AppCompatActivity implements MissionComplet
         Log.d(TAG, "Requested AlarmSoundService start");
     }
 
-
-    private void loadMissions() {
-        alarmRepository.getMissionsForAlarm(alarmId, new AlarmRepository.MissionCallback() {
-            @Override
-            public void onMissionsLoaded(List<Mission> missions) {
-                if (missions == null || missions.isEmpty()) {
-                    Log.w(TAG, "No missions for alarmId=" + alarmId + " — keeping activity visible and service running");
-                    runOnUiThread(() -> Toast.makeText(RingingActivity.this, "Không có nhiệm vụ cho báo thức này.", Toast.LENGTH_LONG).show());
-                    return;
-                }
-                Random r = new Random();
-                Mission selected = missions.get(r.nextInt(missions.size()));
-                Log.d(TAG, "Selected mission: " + selected.getType());
-                loadMissionFragment(selected);
-            }
-        });
-    }
-
-    private void loadMissionFragment(Mission mission) {
-        if (mission == null) return;
+    /** Random và load fragment nhiệm vụ duy nhất */
+    private void loadRandomMission() {
         try {
-            androidx.fragment.app.Fragment fragment = null;
-            switch (mission.getType()) {
-                case MATH:
+            Fragment fragment = null;
+            int randomIndex = new Random().nextInt(3); // 0,1,2
+
+            switch (randomIndex) {
+                case 0:
                     fragment = new com.example.smartalamclock.fragment.MathMissionFragment();
+                    Log.d(TAG, "Random mission: Math");
                     break;
-                case SHAKE:
+                case 1:
                     fragment = new com.example.smartalamclock.fragment.ShakeMissionFragment();
+                    Log.d(TAG, "Random mission: Shake");
                     break;
-                case TIC_TAC_TOE:
+                case 2:
                     fragment = new com.example.smartalamclock.fragment.TicTacToeMissionFragment();
+                    Log.d(TAG, "Random mission: TicTacToe");
                     break;
-                default:
-                    Log.w(TAG, "Unknown mission type: " + mission.getType());
             }
 
             if (fragment != null) {
-                Bundle args = new Bundle();
-                args.putInt("MISSION_ID", (int) mission.getMissionId());
-                fragment.setArguments(args);
                 getSupportFragmentManager()
                         .beginTransaction()
                         .replace(R.id.mission_container, fragment)
                         .commitAllowingStateLoss();
-                Log.d(TAG, "Mission fragment loaded: " + mission.getType());
             } else {
-                Log.w(TAG, "No fragment for mission, showing notice and keeping music playing");
-                runOnUiThread(() -> Toast.makeText(RingingActivity.this, "Không thể tải nhiệm vụ.", Toast.LENGTH_SHORT).show());
+                Toast.makeText(this, "Can not load random mission.", Toast.LENGTH_SHORT).show();
             }
         } catch (Exception e) {
-            Log.e(TAG, "loadMissionFragment error", e);
-            runOnUiThread(() -> Toast.makeText(RingingActivity.this, "Lỗi khi tải nhiệm vụ.", Toast.LENGTH_SHORT).show());
+            Log.e(TAG, "loadRandomMission error", e);
+            Toast.makeText(this, "Have error when loading random mission.", Toast.LENGTH_SHORT).show();
         }
     }
 
     @Override
+    public void onMissionProgress(int progress) {
+        runOnUiThread(() -> {
+            Log.d(TAG, "Mission progress: " + progress + "%");
+        });
+    }
+
+    @Override
     public void onMissionCompleted() {
-        alarmRepository.dismissAlarm(alarmId);
-        Log.d(TAG, "Mission completed for alarmId=" + alarmId + " — alarm dismissed in DB, music still playing until user stops it.");
-        finish();
+        runOnUiThread(() -> {
+            btnStop.setVisibility(Button.VISIBLE);
+            Toast.makeText(this, "Mission Completed! Click to stop.", Toast.LENGTH_SHORT).show();
+        });
+    }
+
+    @Override
+    public void onMissionFailed(String reason) {
+        runOnUiThread(() -> {
+            Toast.makeText(this, "Mission Failed: " + reason, Toast.LENGTH_SHORT).show();
+        });
+    }
+
+    private void stopAlarm() {
+        try {
+            // Dừng nhạc chuông
+            stopService(new Intent(this, AlarmSoundService.class));
+
+            getSupportFragmentManager()
+                    .beginTransaction()
+                    .remove(getSupportFragmentManager().findFragmentById(R.id.mission_container))
+                    .commitAllowingStateLoss();
+
+            Toast.makeText(this, "Alarm stopped", Toast.LENGTH_SHORT).show();
+            finish();
+        } catch (Exception e) {
+            Log.e(TAG, "Error stopping alarm", e);
+        }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        Log.d(TAG, "onDestroy (activity) — NOT stopping service");
+        Log.d(TAG, "onDestroy (activity)");
     }
 }

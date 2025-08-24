@@ -6,4 +6,8 @@
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
     <color name="purple_500">#6200EE</color>
+    <color name="ttt_cell_bg">#FFFFFF</color>
+    <color name="ttt_cell_border">#DDDDDD</color>
+    <color name="ttt_x">#E53935</color>
+    <color name="ttt_o">#1E88E5</color>
 </resources>

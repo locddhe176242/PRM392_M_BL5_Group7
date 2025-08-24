@@ -102,6 +102,9 @@ public class TicTacToeMissionFragment extends Fragment implements MissionHost {
                 button.setTextSize(pxToSp(textSize));
                 button.setAllCaps(false);
 
+                button.setBackgroundResource(R.drawable.bg_ttt_cell);
+                button.setTextColor(getResources().getColor(android.R.color.black));
+
                 GridLayout.LayoutParams params = new GridLayout.LayoutParams();
                 params.rowSpec = GridLayout.spec(i, 1f);
                 params.columnSpec = GridLayout.spec(j, 1f);
@@ -124,6 +127,7 @@ public class TicTacToeMissionFragment extends Fragment implements MissionHost {
         if (!playerTurn || !board[i][j].getText().toString().isEmpty()) return;
 
         board[i][j].setText("X");
+        board[i][j].setTextColor(getResources().getColor(R.color.ttt_x));
         moveCount++;
         updateProgress();
 
@@ -304,14 +308,11 @@ public class TicTacToeMissionFragment extends Fragment implements MissionHost {
     }
 
     @Override
-    public void onMissionProgress(int progress) {
-    }
+    public void onMissionProgress(int progress) {}
 
     @Override
-    public void onMissionCompleted() {
-    }
+    public void onMissionCompleted() {}
 
     @Override
-    public void onMissionFailed(String reason) {
-    }
+    public void onMissionFailed(String reason) {}
 }
